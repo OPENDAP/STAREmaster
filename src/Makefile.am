@@ -13,6 +13,7 @@ bin_PROGRAMS =
 
 # HDF4 and HDFEOS2 is required for these.
 if USE_HDF4
+
 libstaremaster_la_SOURCES += Modis05L2GeoFile.cpp		\
 Modis09L2GeoFile.cpp Modis09GAGeoFile.cpp ModisGeoFile.cpp	\
 STAREmaster.c
@@ -22,7 +23,8 @@ STAREmaster.c
 bin_PROGRAMS += mk_stare
 
 LDADD = libstaremaster.la
-mk_stare_SOURCES = createSidecarFile.cpp
+mk_stare_SOURCES = mk_stare.cpp
+
 endif # USE_HDF4
 
 bin_PROGRAMS += print_stare

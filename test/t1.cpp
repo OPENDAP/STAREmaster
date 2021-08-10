@@ -44,6 +44,7 @@ main() {
         return ERR;
 
     // Write the sidecar file.
+<<<<<<< HEAD
     if (sf.writeSTAREIndex(1, 5, gf.geo_num_i1[0], gf.geo_num_j1[0],
                            gf.geo_lat1[0], gf.geo_lon1[0], gf.geo_index1[0], gf.var_name[0], "1km"))
         return ERR;
@@ -51,6 +52,15 @@ main() {
     // Close the sidecar file.
     if (sf.closeFile())
         return ERR;
+=======
+    if (sf.writeSTAREIndex(1, 5, gf.geo_num_i[0], gf.geo_num_j[0],
+                           &gf.geo_lat[0][0], &gf.geo_lon[0][0], &gf.geo_index[0][0], gf.var_name[0], "1km"))
+        return ERR;
+
+    // Close the sidecar file.
+    if (sf.close_file())
+	return ERR;
+>>>>>>> upstream/master
 
     // Read the sidecar file.
     int ncid;
@@ -58,8 +68,13 @@ main() {
     vector <string> stare_index_name, variables;
     vector <size_t> size_i, size_j;
     vector<int> stare_varid;
+<<<<<<< HEAD
     if (sf.readSidecarFile(fileNameOut, verbose, num_index, stare_index_name, size_i,
                            size_j, variables, stare_varid, ncid))
+=======
+    if (sf.read_sidecar_file(fileNameOut, verbose, num_index, stare_index_name, size_i,
+			   size_j, variables, stare_varid, ncid))
+>>>>>>> upstream/master
         return ERR;
     if (nc_close(ncid))
         return ERR;
@@ -86,11 +101,19 @@ main() {
         return ERR;
     if (varid != 2) return ERR;
 #endif
+<<<<<<< HEAD
 
     vector<unsigned long long> values;
     if (gf_in.get_stare_indices(varName, ncid, values))
         return ERR;
 
+=======
+
+    vector<unsigned long long> values;
+    if (gf_in.get_stare_indices(varName, ncid, values))
+        return ERR;
+
+>>>>>>> upstream/master
     if (gf_in.close_sidecar_file(ncid))
         return ERR;
     return 0;

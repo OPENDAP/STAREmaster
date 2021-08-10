@@ -37,11 +37,7 @@ public:
 
     int read_sidecar_file(const std::string fileName, int &ncid);
 
-#if 0
-    /** Get STARE index for data variable. */
-    int getSTAREIndex(std::string varName, int verbose, int ncid, int &varid,
-                      size_t &my_size_i, size_t &my_size_j);
-#endif
+    int read_sidecar_file(const std::string fileName, int verbose, int &ncid);
 
     /** Get STARE indices for data variable. */
     int get_stare_indices(const std::string varName, int ncid, vector<unsigned long long> &values);
@@ -50,15 +46,18 @@ public:
     int close_sidecar_file(int ncid);
 
     int d_num_index; /**< Number of STARE index sets needed for this file. */
-    int *geo_num_i1; /**< Number of I. */
-    int *geo_num_j1; /**< Number of J. */
-    double **geo_lat1; /**< Array of 'index sets' (e.g., 2) latitude values. */
-    double **geo_lon1; /**< Array of 'index sets' longitude values. */
-    unsigned long long **geo_index1; /**< Array of 'index sets' of STARE indices. */
 
-    int num_cover;
-    unsigned long long **geo_cover1; /**< Array of 'index sets' of STARE covers. */
-    int *geo_num_cover_values1;
+    int d_ncid; ///< id of the open netCDF4 file    
+    vector<int> geo_num_i; /**< Number of I. */
+    vector<int> geo_num_j; /**< Number of J. */
+    vector<vector<double>> geo_lat;
+    vector<vector<double>> geo_lon;
+    vector<vector<unsigned long long int>> geo_index;
+
+    int num_cover; /**< Number of covers. */
+    vector<vector<unsigned long long int>> geo_cover; /**< The covers. */
+    vector<int> geo_num_cover_values; /**< Size of each cover. */
+
     vector<string> var_name[MAX_NUM_INDEX]; /**< Names of vars that use this index. */
     STARE_SpatialIntervals cover;
 

@@ -11,9 +11,9 @@
 #include <iostream>
 #include <sstream>
 
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+// #ifdef USE_OPENMP
+// #include <omp.h>
+// #endif
 
 #define MAX_NAME 256
 #define MAX_DIMS 16
@@ -192,22 +192,8 @@ Modis05L2GeoFile::readFile(const std::string fileName, int verbose,
                   " with build level " << build_level << "\n";
 
     d_num_index = 1;
-    if (!(geo_num_i1 = (int *) malloc(d_num_index * sizeof(int))))
-        return SSC_ENOMEM;
-    if (!(geo_num_j1 = (int *) malloc(d_num_index * sizeof(int))))
-        return SSC_ENOMEM;
-    if (!(geo_lat1 = (double **) malloc(d_num_index * sizeof(double *))))
-        return SSC_ENOMEM;
-    if (!(geo_lon1 = (double **) malloc(d_num_index * sizeof(double *))))
-        return SSC_ENOMEM;
-    if (!(geo_index1 = (unsigned long long **) malloc(d_num_index * sizeof(unsigned long long *))))
-        return SSC_ENOMEM;
 
     num_cover = 1;
-    if (!(geo_num_cover_values1 = (int *) malloc(num_cover * sizeof(int))))
-        return SSC_ENOMEM;
-    if (!(geo_cover1 = (unsigned long long **) malloc(num_cover * sizeof(unsigned long long *))))
-        return SSC_ENOMEM;
 
     // Open the swath file.
     if ((swathfileid = SWopen((char *) fileName.c_str(), DFACC_RDONLY)) < 0)
@@ -230,43 +216,49 @@ Modis05L2GeoFile::readFile(const std::string fileName, int verbose,
     if (SWreadfield(swathid, (char *) ssc_lat_name.c_str(), NULL, NULL, NULL, latitude))
         return SSC_EHDF4ERR;
 
-    geo_num_i1[0] = MAX_ALONG;
-    geo_num_j1[0] = MAX_ACROSS;
-    if (!(geo_lat1[0] = (double *) calloc(geo_num_i1[0] * geo_num_j1[0], sizeof(double))))
-        return SSC_ENOMEM;
-    if (!(geo_lon1[0] = (double *) calloc(geo_num_i1[0] * geo_num_j1[0], sizeof(double))))
-        return SSC_ENOMEM;
-    if (!(geo_index1[0] = (unsigned long long *) calloc(geo_num_i1[0] * geo_num_j1[0],
-                                                        sizeof(unsigned long long))))
-        return SSC_ENOMEM;
+    geo_num_i.push_back(MAX_ALONG);
+    geo_num_j.push_back(MAX_ACROSS);
+    // if (!(geo_index1[0] = (unsigned long long *) calloc(geo_num_i[0] * geo_num_j[0],
+    //                                                     sizeof(unsigned long long))))
+    //     return SSC_ENOMEM;
 
     int level = 27;
     int finest_resolution = 0;
     STARE index(level, build_level);
 
     // Calculate STARE index for each point.
-#pragma omp parallel reduction(max : finest_resolution)
+//#pragma omp parallel reduction(max : finest_resolution)
     {
         STARE index1(level, build_level);
-#pragma omp for
-        for (int i = 0; i < MAX_ALONG; i++) {
-            for (int j = 0; j < MAX_ACROSS; j++) {
-                geo_lat1[0][i * MAX_ACROSS + j] = latitude[i][j];
-                geo_lon1[0][i * MAX_ACROSS + j] = longitude[i][j];
+//#pragma omp for
+	vector<double> lats;
+	vector<double> lons;
+	vector<unsigned long long int> geo_index_1;
+    for (int i = 0; i < MAX_ALONG; i++) {
+        for (int j = 0; j < MAX_ACROSS; j++) {
+            // geo_lat1[0][i * MAX_ACROSS + j] = latitude[i][j];
+            // geo_lon1[0][i * MAX_ACROSS + j] = longitude[i][j];
+    lats.push_back(latitude[i][j]);
+    lons.push_back(longitude[i][j]);
 
-                // Calculate the stare indices.
-                geo_index1[0][i * MAX_ACROSS + j] = index1.ValueFromLatLonDegrees((double) latitude[i][j],
-                                                                                  (double) longitude[i][j], level);
-            }
-            index1.adaptSpatialResolutionEstimatesInPlace(&(geo_index1[0][i * MAX_ACROSS]), MAX_ACROSS);
+            // Calculate the stare indices.
+            // geo_index1[0][i * MAX_ACROSS + j] = index1.ValueFromLatLonDegrees((double) latitude[i][j],
+            //                                                                   (double) longitude[i][j], level);
+            geo_index_1.push_back(index1.ValueFromLatLonDegrees((double) latitude[i][j],
+                                (double) longitude[i][j], level));
+        } // next j
+        index1.adaptSpatialResolutionEstimatesInPlace(&(geo_index_1[i * MAX_ACROSS]), MAX_ACROSS);
 
-            for (int j = 0; j < MAX_ACROSS; j++) {
-                int test_resolution = geo_index1[0][i * MAX_ACROSS + j] & 31; // LevelMask
-                if (test_resolution > finest_resolution) {
-                    finest_resolution = test_resolution;
-                }
+        for (int j = 0; j < MAX_ACROSS; j++) {
+            int test_resolution = geo_index_1[i * MAX_ACROSS + j] & 31; // LevelMask
+            if (test_resolution > finest_resolution) {
+                finest_resolution = test_resolution;
             }
         }
+    } // next i
+	geo_lat.push_back(lats);
+	geo_lon.push_back(lons);
+	geo_index.push_back(geo_index_1);
     }
 
     // Now set up and calculate STARE cover
@@ -404,12 +396,11 @@ Modis05L2GeoFile::readFile(const std::string fileName, int verbose,
 
     if (verbose) std::cout << "cover size = " << cover.size() << "\n";
 
-    geo_num_cover_values1[0] = cover.size();
-    if (!(geo_cover1[0] = (unsigned long long *) calloc(geo_num_cover_values1[0],
-                                                        sizeof(unsigned long long))))
-        return SSC_ENOMEM;
-    for (int k = 0; k < geo_num_cover_values1[0]; ++k)
-        geo_cover1[0][k] = cover[k];
+    geo_num_cover_values.push_back(cover.size());
+    vector<unsigned long long int> geo_cover_1;
+    for (int k = 0; k < geo_num_cover_values[0]; ++k) 
+	geo_cover_1.push_back(cover[k]);
+    geo_cover.push_back(geo_cover_1);
 
     // Learn about dims for this swath.
     if ((ndims = SWinqdims(swathid, dimnames, dimids)) < 0)

@@ -184,7 +184,7 @@ SidecarFile::writeSTAREIndex(int verbose, int build_level, int i, int j,
 
     // Add attribute with list of variables.
     for (int i = 0; i < (int) var_name.size(); i++) {
-        var_att.append(var_name.at(i).c_str());
+        var_att.append(var_name[i].c_str());
         if (i < (int) var_name.size() - 1)
             var_att.append(", ");
     }
@@ -259,7 +259,8 @@ SidecarFile::writeSTARECover(int verbose, int stare_cover_size, unsigned long lo
  * Close a sidecar file.
  */
 int
-SidecarFile::closeFile() {
+SidecarFile::close_file()
+{
     return nc_close(ncid);
 }
 
@@ -295,27 +296,27 @@ SidecarFile::writeFile(const std::string fileName, int verbose,
  * @return 0 for success, error code otherwise.
  */
 int
-SidecarFile::readSidecarFile(const std::string fileName, int verbose, int &num_index,
-                             vector <string> &stare_index_name, vector <size_t> &size_i,
-                             vector <size_t> &size_j, vector <string> &variables,
-                             vector<int> &stare_varid, int &ncid) {
-    char title_in[NC_MAX_NAME + 1];
-    int ndims, nvars;
-    int ret;
-
+SidecarFile::read_sidecar_file(const std::string fileName, int verbose, int &num_index,
+			       vector<string> &stare_index_name, vector<size_t> &size_i,
+			       vector<size_t> &size_j, vector<string> &variables,
+			       vector<int> &stare_varid, int &ncid)
+{
     if (verbose) std::cout << "Reading sidecar file " << fileName << "\n";
 
     // Open the sidecar file.
+    int ret;
     if ((ret = nc_open(fileName.c_str(), NC_NOWRITE, &ncid)))
         return ret;
 
     // Check the title attribute to make sure this is a sidecar file.
+    char title_in[NC_MAX_NAME + 1];
     if ((ret = nc_get_att_text(ncid, NC_GLOBAL, SSC_TITLE_NAME, title_in)))
         return ret;
     if (strncmp(title_in, SSC_TITLE, NC_MAX_NAME))
         return SSC_NOT_SIDECAR;
 
     // How many vars and dims?
+    int ndims, nvars;
     if ((ret = nc_inq(ncid, &ndims, &nvars, NULL, NULL)))
         return ret;
 

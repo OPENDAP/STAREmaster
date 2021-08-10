@@ -34,6 +34,7 @@ main() {
         return ERR;
 
     // Write the sidecar file.
+<<<<<<< HEAD
     if (sf.writeSTAREIndex(1, 5, gf.geo_num_i1[0], gf.geo_num_j1[0],
                            gf.geo_lat1[0], gf.geo_lon1[0], gf.geo_index1[0], gf.var_name[0], "1km"))
         return ERR;
@@ -42,5 +43,15 @@ main() {
     if (sf.closeFile())
         return ERR;
 
+=======
+    if (sf.writeSTAREIndex(1, 5, gf.geo_num_i[0], gf.geo_num_j[0],
+                           &gf.geo_lat[0][0], &gf.geo_lon[0][0], &gf.geo_index[0][0], gf.var_name[0], "1km"))
+        return ERR;
+
+    // Close the sidecar file.
+    if (sf.close_file())
+	return ERR;
+    
+>>>>>>> upstream/master
     return 0;
 }
