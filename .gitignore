@@ -52,3 +52,4 @@ test/data/MOD05_L2.A2005349.2125.061.2017294065400_stare.nc
 test/data/Makefile
 test/data/Makefile.in
 
+/src/print_stare

@@ -1,6 +1,12 @@
 // This is the main program to create the sidecar files.
 //
 // Ed Hartnett 3/14/2020
+//
+// Renamed and hacked. The new name is easier for me to type.
+// The hack enables the command to be run from withing a docker
+// container and access files in the parent computer's file system,
+// assuming that file system has been mounted on /parent in the
+// container.
 
 #include "config.h"
 
@@ -14,6 +20,8 @@
 #include "Modis09L2GeoFile.h"
 #include "Modis09GAGeoFile.h"
 #include "SidecarFile.h"
+
+#define DOCKER_PREFIX "/parent"
 
 using namespace std;
 
@@ -37,6 +45,9 @@ void usage(char *name) {
         << "  " << " -i, --institution : Institution where sidecar file is produced." << endl
         << "  " << " -o, --output_file : Provide file name for output file." << endl
         << "  " << " -r, --output_dir  : Provide output directory name." << endl
+        << "  " << " -D, --docker      : This is running in a docker container, access files via a 'prefix'" << endl
+        << "  " << "                     that maps the parent computer's file system into the container. The" << endl
+        << "  " << "                     must be mounted read/write." << endl
         << endl;
     exit(0);
 };
@@ -51,6 +62,7 @@ struct Arguments {
     char institution[SSC_MAX_NAME] = "";
     char output_file[SSC_MAX_NAME] = "";
     char output_dir[SSC_MAX_NAME] = "";
+    char docker[SSC_MAX_NAME] = "";
     int err_code = 0;
 };
 
@@ -68,7 +80,8 @@ Arguments parseArguments(int argc, char *argv[]) {
             {"institution",      required_argument, 0, 'i'},
             {"output_file",      required_argument, 0, 'o'},
             {"output_directory", required_argument, 0, 'r'},
-            {0,                  0,                 0, 0}
+            {"docker",           required_argument, 0, 'D'},
+            {0,                  0,        0, 0}
     };
 
     int long_index = 0;
@@ -104,6 +117,9 @@ Arguments parseArguments(int argc, char *argv[]) {
             case 'r':
                 strcpy(arguments.output_dir, optarg);
                 break;
+            case 'D':
+                strcpy(arguments.docker, optarg);
+                break;
         }
     }
 
@@ -123,37 +139,33 @@ Arguments parseArguments(int argc, char *argv[]) {
     return arguments;
 };
 
-/** Pick an output filename for the STARE index file, including output
+/**
+ * Pick an output filename for the STARE index file, including output
  * directory.
  *
- * @param file_in_char Name of the data file.
- * @param output_dir_char If present, the name of the output directory
+ * @param in_file Name of the data file.
+ * @param output_dir If present, the name of the output directory
  * for the STARE index sidecar file.
  * @return The path and name of the sidecar file.
  */
 string
-pickOutputName(const char *file_in_char, char *output_dir_char) {
-    string file_out(file_in_char);
-    string output_dir(output_dir_char);
-
+pickOutputName(const string &in_file, const string &output_dir = "") {
     // Do we want this in a different directory?
-    if (strlen(output_dir_char)) {
-        size_t f = file_out.rfind("/");
+    if (!output_dir.empty()) {
+        size_t f = in_file.rfind("/");
         if (f != string::npos)
-            file_out = output_dir + file_out.substr(f, string::npos);
+            return output_dir + in_file.substr(f, string::npos);
         else
-            file_out = output_dir + file_out;
+            return output_dir + in_file;
     }
 
-    return file_out;
+    return in_file;
 }
 
 int
 main(int argc, char *argv[]) {
     Arguments arg = parseArguments(argc, argv);
-    GeoFile *gf;
-    SidecarFile sf;
-    string file_out;
+
     const string MOD09 = "MOD09";
     const string MOD09GA = "MOD09GA";
     const string SIN_TABLE = "sn_bound_10deg.txt";
@@ -168,9 +180,21 @@ main(int argc, char *argv[]) {
         return arg.err_code;
     }
 
+    // Docker command hack. jhrg 8/20/21
+    string in_file = argv[optind];
+    string output_dir = arg.output_dir;
+    string output_file = arg.output_file;
+    string docker = arg.docker;
+    if (!docker.empty()) {
+        in_file = docker.append("/").append(in_file);
+        output_dir = docker.append("/").append(output_dir);
+        output_file = docker.append("/").append(output_file);
+    }
+
+    GeoFile *gf = nullptr;
     if (arg.data_type == MOD09) {
         gf = new Modis09L2GeoFile();
-        if (((Modis09L2GeoFile *) gf)->readFile(argv[optind], arg.verbose, arg.build_level,
+        if (((Modis09L2GeoFile *) gf)->readFile(in_file, arg.verbose, arg.build_level,
 						arg.cover_level, arg.cover_gring, arg.stride)) {
             cerr << "Error reading MOD09 L2 file.\n";
             return 99;
@@ -178,27 +202,29 @@ main(int argc, char *argv[]) {
     }
     else if (arg.data_type == MOD09GA) {
         gf = new Modis09GAGeoFile();
-        if (((Modis09GAGeoFile *) gf)->readFile(argv[optind], arg.verbose, arg.build_level)) {
+        if (((Modis09GAGeoFile *) gf)->readFile(in_file, arg.verbose, arg.build_level)) {
             cerr << "Error reading MOD09GA file.\n";
             return 99;
         }
     }
     else {
         gf = new Modis05L2GeoFile();
-        if (((Modis05L2GeoFile *) gf)->readFile(argv[optind], arg.verbose, arg.build_level,
+        if (((Modis05L2GeoFile *) gf)->readFile(in_file, arg.verbose, arg.build_level,
                                                 arg.cover_level, arg.cover_gring, arg.stride)) {
             cerr << "Error reading MOD05 file.\n";
             return 99;
         }
     }
 
-    // Determine the output filename.
-    if (strlen(arg.output_file))
-        file_out = arg.output_file;
+    // Determine the output filename; output_file and output_dir are mutually exclusive. jhrg 8/20/21
+    string file_out;
+    if (!output_file.empty())
+        file_out = output_file;
     else
-        file_out = pickOutputName(gf->sidecar_filename(argv[optind]).c_str(), arg.output_dir);
+        file_out = pickOutputName(gf->sidecar_filename(in_file), output_dir);
 
     // Create the sidecar file.
+    SidecarFile sf;
     sf.createFile(file_out, arg.verbose, arg.institution);
 
     // Write the sidecar file.
