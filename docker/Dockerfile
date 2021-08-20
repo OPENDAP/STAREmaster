@@ -29,6 +29,7 @@ MAINTAINER support@opendap.org
 ENV STARE_MASTER_VERSION=0.2.1
 
 # Build env vars
+ENV HOME="/home"
 ENV prefix="/home/build"
 ENV MAKE="make"
 ENV MAKEFLAGS="-j8"
@@ -40,8 +41,8 @@ ENV STARE_MASTER="https://github.com/OPENDAP/STAREmaster"
 RUN yum -y update
 
 RUN yum -y install \
-    gcc-c++ flex bison cmake autoconf automake libtool emacs openssl-devel libuuid-devel readline-devel zlib-devel \
-    bzip2 bzip2-devel libjpeg-devel libxml2-devel curl-devel libicu-devel cppunit cppunit-devel vim bc make
+    gcc-c++ flex bison cmake autoconf automake libtool openssl-devel libuuid-devel readline-devel zlib-devel \
+    bzip2 bzip2-devel libjpeg-devel libxml2-devel curl-devel libicu-devel cppunit cppunit-devel vim bc make git
 
 RUN yum -y install epel-release
 
@@ -53,14 +54,18 @@ RUN yum clean all
 
 # Build and install HDFEOS2 and STARE using the hyrax deps. This will install
 # these libs in $prefix/deps.
-RUN git clone $HYRAX_DEPENDENCIES
-RUN set -e && (cd hyrax-dependencies; $MAKE hdfeos stare $MAKEFLAGS LDFLAGS=/usr/lib64/hdf)
-
+RUN set -e && (cd $HOME; git clone $HYRAX_DEPENDENCIES)
+RUN set -e && (cd $HOME/hyrax-dependencies; \
+    export LDFLAGS=-L/usr/lib64/hdf; $MAKE hdfeos $MAKEFLAGS; $MAKE stare $MAKEFLAGS)
+#
 # Now build STAREmaster
-RUN git clone $STARE_MASTER
-RUN set -e && (cd STAREmaster; autoreconf --force --install --verbose; \
+RUN set -e && (cd $HOME; git clone $STARE_MASTER)
+RUN set -e && (cd $HOME/STAREmaster; \
+    git checkout docker-cmd; \
+    autoreconf --force --install --verbose; \
     ./configure --prefix=$prefix CPPFLAGS="-I$prefix/deps/include -I/usr/include/hdf" LDFLAGS="-L$prefix/deps/lib -L/usr/lib64/hdf"; \
-    $MAKE $MAKEFLAGS)
+    $MAKE $MAKEFLAGS; \
+    $MAKE $MAKEFLAGS install)
 
 ENV PATH="$prefix/bin:$prefix/deps/bin:$PATH"
 

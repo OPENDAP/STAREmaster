@@ -1,0 +1,7 @@
+
+docker build --memory 4g --memory-swap=-1 -t sm-4 .
+
+Not sure if the --memory or swap is needed.
+
+jimg@edamame docker % docker run -it -v /:/private sm-5 --docker=/private $prefix/share/hyrax/data/stare/336-23xx.20201211/MOD05_L2.A2019336.2315.061.2019337071952.hdf
+Error reading MOD05 file.
