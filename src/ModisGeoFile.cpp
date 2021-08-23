@@ -80,7 +80,6 @@ ModisGeoFile::getGRing(const std::string fileName, int verbose, float *gring_lat
     const int LON_LEN = 71;
     const int LAT_LEN = 70;
     int ret;
-    verbose=1;
 
     // Open the HDF4 SD API for this file.
     if ((sd_id = SDstart(fileName.c_str(), DFACC_READ)) == -1)
@@ -141,9 +140,9 @@ ModisGeoFile::getGRing(const std::string fileName, int verbose, float *gring_lat
     // Pull the latitude GRing values from the ArchiveMetadata.0 text
     // string.
     lat_pos = sm.find(lat_str, 0);
-    cout << "sm.substr(lat_pos, 256) " << sm.substr(lat_pos, 256) << "\n";
+//    cout << "sm.substr(lat_pos, 256) " << sm.substr(lat_pos, 256) << "\n";
     lat_pos = sm.find(open_paren_str, lat_pos) + 1;
-    cout << "sm.substr(lat_pos, 256) " << sm.substr(lat_pos, 256) << "\n";
+//    cout << "sm.substr(lat_pos, 256) " << sm.substr(lat_pos, 256) << "\n";
     end_lat_pos = sm.find(close_paren_str, lat_pos);
     grlat = sm.substr(lat_pos, end_lat_pos - lat_pos - 1);
     if (verbose)
