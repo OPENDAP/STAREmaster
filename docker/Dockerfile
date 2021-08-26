@@ -62,6 +62,7 @@ RUN set -e && (cd $HOME/hyrax-dependencies; \
 RUN set -e && (cd $HOME; git clone $STARE_MASTER)
 RUN set -e && (cd $HOME/STAREmaster; \
     git checkout docker-cmd; \
+    git pull; \
     autoreconf --force --install --verbose; \
     ./configure --prefix=$prefix CPPFLAGS="-I$prefix/deps/include -I/usr/include/hdf" LDFLAGS="-L$prefix/deps/lib -L/usr/lib64/hdf"; \
     $MAKE $MAKEFLAGS; \

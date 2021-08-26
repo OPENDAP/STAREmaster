@@ -187,11 +187,13 @@ main(int argc, char *argv[]) {
     string docker = arg.docker;
     if (!docker.empty()) {
         in_file = docker.append("/").append(in_file);
-        output_dir = docker.append("/").append(output_dir);
-        output_file = docker.append("/").append(output_file);
-        cerr << "Docker option: in_file: " << in_file << endl;
-        cerr << "Docker option: output_dir: " << output_dir << endl;
-        cerr << "Docker option: output_file: " << output_file << endl;
+        // output_dir = docker.append("/").append(output_dir);
+        // output_file = docker.append("/").append(output_file);
+        if (arg.verbose) {
+            cerr << "Docker option: in_file: " << in_file << endl;
+            cerr << "Docker option: output_dir: " << output_dir << endl;
+            cerr << "Docker option: output_file: " << output_file << endl;
+        }
     }
 
     GeoFile *gf = nullptr;
